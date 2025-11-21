@@ -1,81 +1,56 @@
-# 🎨 AI 图片生成中心
+# Nano Banana 🍌
 
-[English Version](./README.en.md)
+一个简洁、高效的前端应用，专注于利用 Google Gemini 模型实现图文生成功能。
 
-一个先进、一体化的 AI 图片生成 Web 应用平台。本项目提供了一个直观的 **Web 用户界面**，让您可以与一系列强大的文生图模型进行交互，包括 **Qwen-Image (通义万相)、Flux、Kontext、Krea**，以及多模态模型 **Nano Banana**。
+## 项目目标
 
-项目基于强大的 Deno 后端构建，旨在提供一个无缝衔接且具备专业级水准的创作体验。
+创建一个轻量级的 Web 界面，用户可以通过输入文本提示词，并可选择性地上传图片，来调用背后由 Cloudflare Workers 驱动的 Gemini API 服务，从而生成新的图片。
 
----
+## 核心功能
 
-## ✨ 核心功能
+1.  **界面简洁**：
+    *   移除所有非核心的UI元素，只保留一个清晰的标题 "Nano Banana"。
+    *   一个用于输入 API 密钥的设置区域。
+    *   一个可选的图片上传区域。
+    *   一个文本提示词输入框。
+    *   一个“生成”按钮。
+    *   一个用于展示生成结果的区域。
 
-*   **多模型支持**: 在主界面即可无缝切换多种业界顶尖的图片生成模型。
-*   **直观的 Web UI**: 拥有一个干净、现代化且响应式的用户界面，专为专业创作流程而设计。
-*   **高级生成控制**:
-    *   **文生图**: 完全掌控正向/负向提示词、分辨率、采样步数、引导系数 (CFG) 和随机种子。
-    *   **多模态 (Nano Banana)**: 结合上传的图片和文本提示词，执行图生图、图文理解等任务。
-*   **批量生成**: 一次最多可生成4张图片。应用能够智能处理 API 的速率限制，通过在**并发请求**（适用于Flux等模型）和**串行请求**（适用于Qwen等模型）之间自动切换，确保任务成功率。
-*   **智能会话记忆**:
-    *   **输入持久化**: 您为每个模型设置的所有提示词和参数，都会在当前会话中被记住。即使来回切换模型，您的工作内容也不会丢失。
-    *   **后台任务**: 您可以为一个模型开启生成任务，然后立即切换到其他模型进行操作。应用会持续追踪正在运行的任务，当您切回来时，它会自动恢复视图——如果任务仍在运行，则显示实时进度；如果已完成，则展示结果。
-*   **专业级用户体验**:
-    *   **浅色 & 深色模式**: 内置主题切换功能，满足您的视觉偏好。
-    *   **动态进度更新**: 在生成多张图片时，获得实时反馈（例如：“正在生成 2/4 张图片...”）。
-    *   **全屏预览**: 点击任何一张生成的图片，即可在弹窗中进行全屏预览。
-*   **智能 API Key 处理**:
-    *   在部署时将 `OPENROUTER_API_KEYS` 和 `MODELSCOPE_API_KEY` 设置为环境变量，前端将自动隐藏密钥输入框，打造一个清爽、可供分享的界面。
-    *   如果未设置环境变量，也支持在UI中直接输入。
-    *   环境变量支持多个API密钥（用逗号分隔），以实现随机、无状态的负载均衡。
+2.  **核心模型**：
+    *   直接调用 Google Gemini 的官方模型（例如 `gemini-pro-vision` 或其他支持图片生成的最新官方模型），不再使用自定义或非官方的模型名称。
 
----
+3.  **技术栈**：
+    *   **前端**：使用原生 HTML, CSS, 和 JavaScript 构建，确保应用的轻量和高性能。
+    *   **后端**：利用 Cloudflare Workers 作为服务端，处理对 Google Gemini API 的请求，隐藏API密钥，并处理跨域问题。
 
-## 🚀 部署到 Deno Deploy
+## 文件结构
 
-1.  **Fork 本项目**: 将此仓库 Fork 到您自己的 GitHub 账户。
-2.  **登录 Deno Deploy**: 使用您的 GitHub 账号登录 [Deno Deploy Dashboard](https://dash.deno.com/projects)。
-3.  **创建新项目**:
-    *   点击 "New Project"。
-    *   选择您刚刚 Fork 的 GitHub 仓库。
-    *   选择 `main` 分支和 `main.ts` 作为入口文件。
-4.  **(推荐) 添加环境变量**:
-    *   进入项目的 "Settings" -> "Environment Variables"。
-    *   添加 `MODELSCOPE_API_KEY`，值为您的 ModelScope 密钥（用于 Qwen, Flux 等）。
-    *   添加 `OPENROUTER_API_KEYS`，值为您的 OpenRouter 密钥（用于 Nano Banana）。
-    *   *提示: 您可以添加多个由逗号分隔的密钥 (例如 `key1,key2,key3`) 来实现负载均衡。*
-    *   **没有密钥？**
-        *   [如何注册 ModelScope API 密钥](https://x230rpqk6u.feishu.cn/wiki/AJxKwmleQiUovZkZZOJc4mp4n5g)
-        *   [如何注册 OpenRouter API 密钥](https://x230rpqk6u.feishu.cn/wiki/FptCw2H1ViN7QwkhT16cMTDPnCe)
-5.  **部署**: 点击 "Link" 或 "Deploy" 按钮，您的 AI 图片生成中心就上线了！
+```
+.
+├── index.html         # 应用主页面
+├── style.css          # 样式文件
+├── script.js          # 前端交互逻辑
+└── functions/
+    └── generate.js    # Cloudflare Worker 后端函数，用于调用 Gemini API
+```
 
----
+## 开发步骤指南
 
-## 🛠️ 如何使用
+1.  **构建前端界面 (`index.html`, `style.css`)**：
+    *   创建 `index.html`，包含标题、设置区、图片上传区、提示词输入框、生成按钮和结果显示区。
+    *   使用 `style.css` 对页面进行美化，使其布局简洁美观。
 
-1.  打开您部署后的 `*.deno.dev` URL。
-2.  如果您没有在部署时设置环境变量，请在所选模型的“设置”区域输入对应的 API Key。（如没有密钥，请参考上方“部署”部分的教程链接）。
-3.  **对于文生图模型 (Qwen, Flux 等)**:
-    *   输入您的正向和负向提示词。
-    *   调整分辨率、步数、引导系数等参数。
-    *   选择您想生成的图片数量。
-    *   点击“生成”。
-4.  **对于 Nano Banana (多模态模型)**:
-    *   （可选）上传一张或多张图片。
-    *   输入您的文本提示词。
-    *   点击“生成”。
+2.  **实现前端逻辑 (`script.js`)**：
+    *   监听“生成”按钮的点击事件。
+    *   获取用户输入的 API 密钥、提示词以及上传的图片（如果有）。
+    *   将这些数据发送到 Cloudflare Worker 后端。
+    *   接收后端的返回结果，并将其展示在结果区域。
 
----
+3.  **开发后端服务 (`functions/generate.js`)**：
+    *   创建一个 Cloudflare Worker 函数。
+    *   该函数接收前端发送的请求。
+    *   使用正确的 Gemini 模型名称（如 `gemini-pro-vision`）构造对 Google Gemini API 的请求。
+    *   将用户的 API 密钥安全地添加到请求头中。
+    *   将 Gemini API 的响应返回给前端。
 
-## 💻 技术栈
-
--   **前端**: 原生 HTML, CSS, JavaScript (无框架)
--   **后端**: Deno, Deno Standard Library
--   **AI 模型**:
-    *   [魔搭 (ModelScope)](https://modelscope.cn/): `Qwen/Qwen-Image`, `MusePublic/FLUX.1` 等
-    *   [OpenRouter](https://openrouter.ai/): `google/gemini-2.5-flash-image-preview` (用于 Nano Banana)
-
----
-
-## 📜 许可证
-
-本项目采用 [MIT License](LICENSE) 开源。
+这个 `README.md` 文件现在清晰地定义了新项目的范围和技术实现路径。当您在新的仓库中开始时，可以把这个文件交给 AI，并让它根据这些要求来生成代码。
