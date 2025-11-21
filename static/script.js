@@ -6,9 +6,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     const modelCards = document.querySelectorAll('.model-card');
     const nanobananaControls = document.getElementById('nanobanana-controls');
     const modelscopeControls = document.getElementById('modelscope-controls');
-    const apiKeyOpenRouterInput = document.getElementById('api-key-input-openrouter');
+    const apiKeyGoogleInput = document.getElementById('api-key-input-google');
     const apiKeyModelScopeInput = document.getElementById('api-key-input-modelscope');
     const generateBtns = document.querySelectorAll('.generate-btn');
+    const geminiModelSelectorContainer = document.getElementById('gemini-model-selector-container');
+    const geminiModelSelect = document.getElementById('gemini-model-select');
 
     const countButtons = document.querySelectorAll('.count-btn');
     const mainResultImageContainer = document.getElementById('main-result-image');
@@ -50,7 +52,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 guidance: 3.5,
                 seed: -1,
                 count: 1,
-                files: []
+                files: [],
+                geminiModel: 'gemini-1.5-flash-latest' // 新增：为 Gemini 模型保存所选版本
             },
             task: {
                 isRunning: false,
@@ -70,8 +73,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         setupModalListeners();
         
         fetch('/api/key-status').then(res => res.json()).then(data => {
-            if (data.isSet) { apiKeyOpenRouterInput.parentElement.style.display = 'none'; }
-        }).catch(error => console.error("无法检查 OpenRouter API key 状态:", error));
+            if (data.isSet) { apiKeyGoogleInput.parentElement.style.display = 'none'; }
+        }).catch(error => console.error("无法检查 Google AI API key 状态:", error));
 
         fetch('/api/modelscope-key-status').then(res => res.json()).then(data => {
             if (data.isSet) { apiKeyModelScopeInput.parentElement.style.display = 'none'; }
@@ -82,9 +85,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         const state = modelStates[modelId];
         if (!state) return;
         
-        if (modelId === 'nanobanana') {
+        if (modelId.startsWith('gemini-')) {
             state.inputs.prompt = promptNanoBananaInput.value;
             state.inputs.files = selectedFiles;
+            state.inputs.geminiModel = geminiModelSelect.value;
         } else {
             state.inputs.prompt = promptPositiveInput.value;
             state.inputs.negative_prompt = promptNegativeInput.value;
@@ -102,9 +106,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         updateActiveModelUI();
         
-        if (currentModel === 'nanobanana') {
+        if (currentModel.startsWith('gemini-')) {
             promptNanoBananaInput.value = state.inputs.prompt;
             selectedFiles = state.inputs.files;
+            geminiModelSelect.value = state.inputs.geminiModel;
             thumbnailsContainer.innerHTML = '';
             selectedFiles.forEach(createThumbnail);
         } else {
@@ -162,11 +167,27 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function updateActiveModelUI() {
-        if (currentModel === 'nanobanana') { nanobananaControls.classList.remove('hidden'); modelscopeControls.classList.add('hidden'); } 
-        else { nanobananaControls.classList.add('hidden'); modelscopeControls.classList.remove('hidden'); }
-        nanobananaPromptRemark.textContent = ''; modelscopePromptRemark.textContent = ''; modelscopeNegativePromptRemark.textContent = '';
-        if (currentModel === 'nanobanana') { nanobananaPromptRemark.textContent = '(支持中文提示词)'; } 
-        else { let remarkText = ''; if (currentModel === 'Qwen/Qwen-Image') { remarkText = '(支持中文提示词)'; } else if (currentModel.includes('FLUX') || currentModel.includes('Kontext') || currentModel.includes('Krea')) { remarkText = '(请使用英文提示词)'; } modelscopePromptRemark.textContent = remarkText; modelscopeNegativePromptRemark.textContent = remarkText; }
+        const isGemini = currentModel.startsWith('gemini-');
+        nanobananaControls.classList.toggle('hidden', !isGemini);
+        modelscopeControls.classList.toggle('hidden', isGemini);
+        geminiModelSelectorContainer.classList.toggle('hidden', !isGemini);
+
+        nanobananaPromptRemark.textContent = ''; 
+        modelscopePromptRemark.textContent = ''; 
+        modelscopeNegativePromptRemark.textContent = '';
+
+        if (isGemini) { 
+            nanobananaPromptRemark.textContent = '(支持中文提示词)'; 
+        } else { 
+            let remarkText = ''; 
+            if (currentModel === 'Qwen/Qwen-Image') { 
+                remarkText = '(支持中文提示词)'; 
+            } else if (currentModel.includes('FLUX') || currentModel.includes('Kontext') || currentModel.includes('Krea')) { 
+                remarkText = '(请使用英文提示词)'; 
+            } 
+            modelscopePromptRemark.textContent = remarkText; 
+            modelscopeNegativePromptRemark.textContent = remarkText; 
+        }
     }
     
     function setupInputValidation() {
@@ -255,7 +276,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             statusUpdate('准备请求...');
 
             let imageUrls;
-            if (modelId === 'nanobanana') {
+            if (modelId.startsWith('gemini-')) {
                 imageUrls = await handleNanoBananaGeneration(statusUpdate);
             } else {
                 imageUrls = await handleModelScopeGeneration(statusUpdate);
@@ -290,15 +311,33 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     async function handleNanoBananaGeneration(statusUpdate) {
-        if (apiKeyOpenRouterInput.parentElement.style.display !== 'none' && !apiKeyOpenRouterInput.value.trim()) { throw new Error('请输入 OpenRouter API 密钥'); }
+        if (apiKeyGoogleInput.parentElement.style.display !== 'none' && !apiKeyGoogleInput.value.trim()) { throw new Error('请输入 Google AI Studio API 密钥'); }
         if (!promptNanoBananaInput.value.trim()) { throw new Error('请输入提示词'); }
-        statusUpdate('正在生成图片...');
-        const base64Images = await Promise.all(modelStates.nanobanana.inputs.files.map(fileToBase64));
-        const requestBody = { model: 'nanobanana', prompt: modelStates.nanobanana.inputs.prompt, images: base64Images, apikey: apiKeyOpenRouterInput.value };
+        
+        statusUpdate('正在调用 Google AI...');
+        const state = modelStates[currentModel];
+        const base64Images = await Promise.all(state.inputs.files.map(fileToBase64));
+        
+        const requestBody = { 
+            model: state.inputs.geminiModel, // 使用选择器中的模型
+            prompt: state.inputs.prompt, 
+            images: base64Images, 
+            apikey: apiKeyGoogleInput.value 
+        };
+
         const response = await fetch('/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(requestBody) });
         const data = await response.json();
+
         if (!response.ok || data.error) { throw new Error(data.error || `服务器错误: ${response.status}`); }
-        return [data.imageUrl];
+        
+        // 后端现在返回 textResult，而不是 imageUrl
+        if (data.textResult) {
+            // 我们不能直接显示文本为图片，所以就在结果区显示文本
+            updateResultStatus(`模型返回文本: <pre>${data.textResult}</pre>`);
+            return []; // 返回空数组，因为没有图片 URL
+        } else {
+            throw new Error("模型没有返回预期的文本结果。");
+        }
     }
 
     async function handleModelScopeGeneration(statusUpdate) {
